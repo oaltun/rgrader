@@ -40,7 +40,7 @@ def to_float(s: str):
 @app.command()
 def ytu_exam_details_report():
     ## Student points from this exam is calculated using the formula 
-    # max(min(120(p/e)-20(t-a)/(z-a), 100),0) 
+    # round(max(min(120(p/e)-20(t-a)/(z-a), 100),0))
     # where 
     # e is the maximum possible raw points one can get from the exam, 
     # p is the students raw points, 

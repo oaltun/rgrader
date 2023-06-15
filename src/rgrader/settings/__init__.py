@@ -27,11 +27,11 @@ class AppSettings(BaseSettings):
         )
         env_file_encoding = "utf-8"
 
-    excel_file_path: Path = Path("/mnt/c/Users/oguz/OneDrive/donem-2022-2/hesaplama_kurami/BLM2502 - 1_Final_Detay_Raporu_14-06-23-13-22.xlsx")
-    excel_out_dir: Path = Path("/mnt/c/Users/oguz/OneDrive/donem-2022-2/hesaplama_kurami")
+    excel_file_path: Path = Path("/mnt/c/Users/oguz/OneDrive/donem-2022-2/hesaplama_kurami/mazeret_excel/BLM2502 - 1_Mazeret_Detay_Raporu_08-06-23-09-05.xlsx")
+    excel_out_dir: Path = Path("/mnt/c/Users/oguz/OneDrive/donem-2022-2/hesaplama_kurami/mazeret_excel")
 
     # "A regular language is not a CFL ...", "Which one "matches to strings with even number ..."
-    bad_questions:List[int] =[ 246160, 246036 ]
+    bad_questions:List[int] =[  ]
 
     max_possible_raw_points: float = float(380) - float(40)
 
