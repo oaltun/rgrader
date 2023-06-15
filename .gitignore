@@ -1,0 +1,6 @@
+.hatch/
+.venv/
+.pytest_cache/
+.debug/
+__pycache__
+*.pyc
