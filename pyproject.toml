@@ -31,7 +31,8 @@ dependencies = [
   "rich",
   "pydantic",
   "pandas",
-  "openpyxl"
+  "openpyxl",
+  "python-dotenv"
 ]
 
 classifiers = [
