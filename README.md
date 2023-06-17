@@ -1,6 +1,17 @@
 # rgrader
 
-`rgrader` consists of following subcommands.
+`rgrader` consists of subcommands explained in later subsections.
+
+You need `python 3.10` or more, and `hatch` installed.
+
+To run the program, clone the repo, cd into `rgrader`, then issue one of
+
+  * `hatch run rgrader merge xlsx  --help`
+  * `hatch run rgrader grade ytu-exam-details-report --help`
+
+The automatic help will tell you options, arguments, defaults, etc..
+
+Only recent xlsx versions with question ids are supported.
 
 ## grade
 
@@ -14,17 +25,6 @@ where `e` is the maximum possible raw points one can get from the exam, `p` is t
 
 Also, using `bad_questions`, you can cancel questions with mistakes. 
 
-You need `python 3.10` or more, and `hatch` installed.
-
-To run the program, clone the repo, cd into `rgrader`, then issue one of
-
-  * `hatch run rgrader  --help`
-  * `hatch run rgrader grade  --help`
-  * `hatch run rgrader grade ytu-exam-details-report --help`
-
-The automatic help will tell you options, arguments, defaults, etc..
-
-Only recent xlsx versions with question ids are supported.
 
 ## merge
 This subcommand can merge xlsx documents based on a common column. Can help e.g. if exam results are on different files and you need to merge them based on student number. Needs polishing, e.g. the xlsx file must have clean format, etc. 
