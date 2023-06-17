@@ -11,7 +11,6 @@ To run the program, clone the repo, cd into `rgrader`, then issue one of
 
 The automatic help will tell you options, arguments, defaults, etc..
 
-Only recent xlsx versions with question ids are supported.
 
 ## grade
 
@@ -24,6 +23,8 @@ Grade calculation goes like
 where `e` is the maximum possible raw points one can get from the exam, `p` is the students raw points, `a` is the start time of the exam, `z` is the end time of the exam, and `t` is the time student finishes the exam. This approach encourages student to finish the exam as soon as possible. This may prevent students waiting to learn solutions of questions before answering. 
 
 Also, using `bad_questions`, you can cancel questions with mistakes. 
+
+Only recent xlsx versions with question ids are supported.
 
 
 ## merge
