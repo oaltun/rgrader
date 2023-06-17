@@ -2,7 +2,7 @@ from datetime import timedelta, datetime
 from pathlib import Path
 from typing import Annotated, Dict, List, Literal, Optional
 from rich import print
-import pandas as pd
+import pandas as pd # type: ignore
 from pydantic import BaseModel
 import inspect
 
@@ -15,7 +15,7 @@ app = typer.Typer()
 
 
 @app.command()
-def settings_print():
+def settings_print()->None:
     print(
         settings.dict,
     )
@@ -24,14 +24,14 @@ def settings_print():
 tr2en = str.maketrans("çğıöşü ", "cgiosu_")
 
 
-def fix_colname(name: str):
+def fix_colname(name: str)->str:
     return name.lower().translate(tr2en)
 
 
 comma2dot = str.maketrans(",", ".")
 
 
-def to_float(s: str):
+def to_float(s: str)->float|str:
     try:
         s = s.translate(comma2dot)
         return float(s)
@@ -39,7 +39,7 @@ def to_float(s: str):
         return s
 
 
-def to_datetime_nosec(tstr: str):
+def to_datetime_nosec(tstr: str)->datetime|str:
     try:
         dt = datetime.strptime(tstr, '%d.%m.%Y %H:%M')
         return dt
@@ -47,7 +47,7 @@ def to_datetime_nosec(tstr: str):
         return tstr
 
 
-def to_datetime(tstr: str):
+def to_datetime(tstr: str)->datetime|str:
     try:
         dt = datetime.strptime(tstr, '%d.%m.%Y %H:%M:%S')
         return dt
@@ -55,7 +55,7 @@ def to_datetime(tstr: str):
         return tstr
 
 
-def ytuexcel_2_dataframe(path: Path):
+def ytuexcel_2_dataframe(path: Path,bad_questions:List[int])->pd.DataFrame:
     ## Read by default 1st sheet of the excel file
     df = pd.read_excel(path)
 
@@ -64,7 +64,7 @@ def ytuexcel_2_dataframe(path: Path):
     df.rename(columns=new_names, inplace=True)
 
     ## Get rid of bad questions
-    df = df[~df["id"].isin(settings.bad_questions)]
+    df = df[~df["id"].isin(bad_questions)]
 
     ## Parse *_puan as float
     df.alinan_puan = df.alinan_puan.apply(to_float)
@@ -79,13 +79,13 @@ def ytuexcel_2_dataframe(path: Path):
 
 
 class GraderYTU(BaseModel):
-    puan_factor: float = settings.puan_factor
-    zaman_factor: float = settings.zaman_factor
-    puan_ham_mumkun: float = settings.max_possible_raw_points
-    zaman_sinav_baslama: datetime = settings.exam_start_time
-    zaman_sinav_bitme: datetime = settings.exam_end_time
+    puan_factor: float = 1.20
+    zaman_factor: float = 0.20
+    puan_ham_mumkun: float = 100
+    zaman_sinav_baslama: datetime
+    zaman_sinav_bitme: datetime 
 
-    def grade(self, zaman_ogr_bitirme: datetime, puan_ham_ogr: float):
+    def grade(self, zaman_ogr_bitirme: datetime, puan_ham_ogr: float)-> int:
         puan_per100 = 100 * (puan_ham_ogr / self.puan_ham_mumkun)
 
         sure_sinav = self.zaman_sinav_bitme - self.zaman_sinav_baslama
@@ -100,12 +100,29 @@ class GraderYTU(BaseModel):
 
 
 @app.command()
-def ytu_exam_details_report():
-    grader = GraderYTU()
+def ytu_exam_details_report(
+    excel_file_path: Path = Path(
+        "/mnt/c/Users/oguz/OneDrive/donem-2022-2/hesaplama_kurami/final_excel/BLM2502 - 1_Final_Detay_Raporu_14-06-23-13-22.xlsx"
+    ),
+    excel_out_dir: Path = Path("/mnt/c/Users/oguz/OneDrive/donem-2022-2/hesaplama_kurami/final_excel"),
+    bad_questions: List[int] = [1000001,10000000002],
+    puan_ham_mumkun: float = float(270),
+    zaman_sinav_baslama: datetime = datetime(year=2023, month=6, day=5, hour=19),
+    zaman_sinav_bitme: datetime = datetime(year=2023, month=6, day=5, hour=19, minute=40),
+    puan_factor: float = 1.20,
+    zaman_factor: float = 0.20
+)->None:
+    grader = GraderYTU(  
+        puan_factor=puan_factor,
+        zaman_factor=zaman_factor,
+        puan_ham_mumkun=puan_ham_mumkun,
+        zaman_sinav_baslama=zaman_sinav_baslama,
+        zaman_sinav_bitme=zaman_sinav_bitme
+    )
 
-    df = ytuexcel_2_dataframe(settings.excel_file_path)
+    df = ytuexcel_2_dataframe(excel_file_path,bad_questions)
 
-    df.to_excel(Path(settings.excel_out_dir, "cleaned_tum.xlsx"))
+    df.to_excel(Path(excel_out_dir, "cleaned_tum.xlsx"))
 
     ## Select each student and calculate their points
     ogr_nos = df["ogrenci_numarasi"].unique()
@@ -168,10 +185,10 @@ def ytu_exam_details_report():
         ],
     )
 
-    with pd.ExcelWriter(Path(settings.excel_out_dir, "notlar_tum.xlsx")) as writer:
+    with pd.ExcelWriter(Path(excel_out_dir, "notlar_tum.xlsx")) as writer:
         datadf.to_excel(writer, sheet_name="data")
         infodf.to_excel(writer, sheet_name="info")
 
-    with pd.ExcelWriter(Path(settings.excel_out_dir, "notlar_onlyno.xlsx")) as writer:
+    with pd.ExcelWriter(Path(excel_out_dir, "notlar_onlyno.xlsx")) as writer:
         mindatadf.to_excel(writer, sheet_name="data")
         infodf.to_excel(writer, sheet_name="info")
