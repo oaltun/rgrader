@@ -2,7 +2,7 @@ from datetime import timedelta, datetime
 from pathlib import Path
 from typing import Annotated, Dict, List, Literal, Optional
 from rich import print
-import pandas as pd # type: ignore
+import pandas as pd  # type: ignore
 from pydantic import BaseModel
 import inspect
 
@@ -15,7 +15,7 @@ app = typer.Typer()
 
 
 @app.command()
-def settings_print()->None:
+def settings_print() -> None:
     print(
         settings.dict,
     )
@@ -24,14 +24,14 @@ def settings_print()->None:
 tr2en = str.maketrans("çğıöşü ", "cgiosu_")
 
 
-def fix_colname(name: str)->str:
+def fix_colname(name: str) -> str:
     return name.lower().translate(tr2en)
 
 
 comma2dot = str.maketrans(",", ".")
 
 
-def to_float(s: str)->float|str:
+def to_float(s: str) -> float | str:
     try:
         s = s.translate(comma2dot)
         return float(s)
@@ -39,7 +39,7 @@ def to_float(s: str)->float|str:
         return s
 
 
-def to_datetime_nosec(tstr: str)->datetime|str:
+def to_datetime_nosec(tstr: str) -> datetime | str:
     try:
         dt = datetime.strptime(tstr, '%d.%m.%Y %H:%M')
         return dt
@@ -47,7 +47,7 @@ def to_datetime_nosec(tstr: str)->datetime|str:
         return tstr
 
 
-def to_datetime(tstr: str)->datetime|str:
+def to_datetime(tstr: str) -> datetime | str:
     try:
         dt = datetime.strptime(tstr, '%d.%m.%Y %H:%M:%S')
         return dt
@@ -55,9 +55,9 @@ def to_datetime(tstr: str)->datetime|str:
         return tstr
 
 
-def ytuexcel_2_dataframe(path: Path,bad_questions:List[int])->pd.DataFrame:
+def ytuexcel_2_dataframe(path: Path, bad_questions: List[int]) -> pd.DataFrame:
     ## Read by default 1st sheet of the excel file
-    df = pd.read_excel(path)
+    df = pd.read_excel(path, converters={"Öğrenci Numarası": str})
 
     ## Get rid of Turkish only characters and blank in column names
     new_names = {col: fix_colname(col) for col in df.columns}
@@ -75,6 +75,9 @@ def ytuexcel_2_dataframe(path: Path,bad_questions:List[int])->pd.DataFrame:
     df.bitirme_tarihi = df.bitirme_tarihi.apply(to_datetime_nosec)
     df.gorme_tarihi = df.gorme_tarihi.apply(to_datetime)
     df.cevap_tarihi = df.cevap_tarihi.apply(to_datetime)
+
+    ## convert ogr no to str
+    df.ogrenci_numarasi = df.ogrenci_numarasi.apply(str)
     return df
 
 
@@ -83,9 +86,9 @@ class GraderYTU(BaseModel):
     zaman_factor: float = 0.20
     puan_ham_mumkun: float = 100
     zaman_sinav_baslama: datetime
-    zaman_sinav_bitme: datetime 
+    zaman_sinav_bitme: datetime
 
-    def grade(self, zaman_ogr_bitirme: datetime, puan_ham_ogr: float)-> int:
+    def grade(self, zaman_ogr_bitirme: datetime, puan_ham_ogr: float) -> int:
         puan_per100 = 100 * (puan_ham_ogr / self.puan_ham_mumkun)
 
         sure_sinav = self.zaman_sinav_bitme - self.zaman_sinav_baslama
@@ -100,40 +103,53 @@ class GraderYTU(BaseModel):
 
 
 @app.command()
-def ytu_exam_details_report(
+def ytu_detail_xlsx(
     excel_file_path: Path = Path(
         "/mnt/c/Users/oguz/OneDrive/donem-2022-2/hesaplama_kurami/final_excel/BLM2502 - 1_Final_Detay_Raporu_14-06-23-13-22.xlsx"
     ),
     excel_out_dir: Path = Path("/mnt/c/Users/oguz/OneDrive/donem-2022-2/hesaplama_kurami/final_excel"),
-    bad_questions: List[int] = [1000001,10000000002],
+    bad_questions: List[int] = [1000001, 10000000002],
     puan_ham_mumkun: float = float(270),
     zaman_sinav_baslama: datetime = datetime(year=2023, month=6, day=5, hour=19),
     zaman_sinav_bitme: datetime = datetime(year=2023, month=6, day=5, hour=19, minute=40),
     puan_factor: float = 1.20,
-    zaman_factor: float = 0.20
-)->None:
-    grader = GraderYTU(  
+    zaman_factor: float = 0.20,
+    ogr_no_uzem2obs: List[str] = ["12121212", "234234"],
+) -> None:
+    grader = GraderYTU(
         puan_factor=puan_factor,
         zaman_factor=zaman_factor,
         puan_ham_mumkun=puan_ham_mumkun,
         zaman_sinav_baslama=zaman_sinav_baslama,
-        zaman_sinav_bitme=zaman_sinav_bitme
+        zaman_sinav_bitme=zaman_sinav_bitme,
     )
 
-    df = ytuexcel_2_dataframe(excel_file_path,bad_questions)
+    df = ytuexcel_2_dataframe(excel_file_path, bad_questions)
 
     df.to_excel(Path(excel_out_dir, "cleaned_tum.xlsx"))
 
     ## Select each student and calculate their points
-    ogr_nos = df["ogrenci_numarasi"].unique()
+    ogr_nos_uzem = df["ogrenci_numarasi"].unique()
     ps: List[float] = []
     ts: List[datetime] = []
     fps: List[float] = []
     emails: List[str] = []
     ads: List[str] = []
     soyads: List[str] = []
-    for index, ogr_no in enumerate(ogr_nos):
-        answers = df[df["ogrenci_numarasi"] == ogr_no]
+    ogr_nos_obs: List[int] = []
+    ogr_no_degisti: List[bool] = []
+    for index, ogr_no_uzem in enumerate(ogr_nos_uzem):
+        answers = df[df["ogrenci_numarasi"] == ogr_no_uzem]
+        if f"{ogr_no_uzem[0]}" == "Ç":
+            print(ogr_no_uzem)
+
+        if ogr_no_uzem in ogr_no_uzem2obs:
+            ogr_nos_obs.append(f"Ç{ogr_no_uzem}")
+            ogr_no_degisti.append(True)
+            print(ogr_no_uzem)
+        else:
+            ogr_nos_obs.append(f"{ogr_no_uzem}")
+            ogr_no_degisti.append(False)
 
         puan_ham_ogr = float(answers.alinan_puan.sum())
         ps.append(puan_ham_ogr)
@@ -160,10 +176,33 @@ def ytu_exam_details_report(
             fps.append(0)
 
     ## Write data to excell
-    mindatadf = pd.DataFrame(dict(puan_ham=ps, zaman_ogr_bitirme=ts, ogr_no=ogr_nos, puan_son=fps))
-    datadf = pd.DataFrame(
-        dict(puan_ham=ps, zaman_ogr_bitirme=ts, eposta=emails, ad=ads, soyad=soyads, ogr_no=ogr_nos, puan_son=fps)
+    mindatadf = pd.DataFrame(
+        dict(
+            puan_ham=ps,
+            zaman_ogr_bitirme=ts,
+            ogr_no_uzem=ogr_nos_uzem,
+            ogr_no_obs=ogr_nos_obs,
+            puan_son=fps,
+            ogr_no_degisti=ogr_no_degisti,
+        )
     )
+    mindatadf = mindatadf.sort_values(by=['ogr_no_degisti'], ascending=False)
+
+    datadf = pd.DataFrame(
+        dict(
+            puan_ham=ps,
+            zaman_ogr_bitirme=ts,
+            eposta=emails,
+            ad=ads,
+            soyad=soyads,
+            ogr_no_uzem=ogr_nos_uzem,
+            ogr_no_obs=ogr_nos_obs,
+            puan_son=fps,
+            ogr_no_degisti=ogr_no_degisti,
+        )
+    )
+    datadf = datadf.sort_values(by=['ogr_no_degisti'], ascending=False)
+
     infodf = pd.DataFrame(
         columns=[
             "self.puan_factor",
@@ -171,6 +210,7 @@ def ytu_exam_details_report(
             "self.puan_ham_mumkun",
             "self.zaman_sinav_baslama",
             "self.zaman_sinav_bitme",
+            "iptal_edilen_sorular",
             "son_not hesaplama metodu",
         ],
         data=[
@@ -180,10 +220,12 @@ def ytu_exam_details_report(
                 grader.puan_ham_mumkun,
                 grader.zaman_sinav_baslama,
                 grader.zaman_sinav_bitme,
+                str(bad_questions),
                 inspect.getsource(grader.grade),
             ]
         ],
     )
+    infodf = infodf.transpose()
 
     with pd.ExcelWriter(Path(excel_out_dir, "notlar_tum.xlsx")) as writer:
         datadf.to_excel(writer, sheet_name="data")
